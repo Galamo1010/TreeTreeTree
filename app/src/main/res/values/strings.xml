@@ -1,0 +1,104 @@
+<resources>
+    <string name="app_name">TreaMaster</string>
+
+    <string name="perm_title">需要相機權限</string>
+    <string name="perm_camera_why">量測樹高與樹幹直徑需要使用相機（AR）。</string>
+    <string name="perm_location_why">定位為選用：允許後會記錄樹的 GPS 位置；拒絕也能照常量測。</string>
+    <string name="perm_grant">授予權限</string>
+    <string name="perm_open_settings">前往設定開啟相機權限</string>
+    <string name="perm_denied_permanently">相機權限已被拒絕，請到系統設定中手動開啟。</string>
+
+    <string name="ar_starting">正在啟動 AR…</string>
+    <string name="ar_error_declined">需要安裝「Google Play 服務 AR」才能量測。</string>
+    <string name="ar_error_unsupported">此裝置不支援 ARCore。</string>
+    <string name="ar_error_update_app">請更新「Google Play 服務 AR」後再試。</string>
+    <string name="ar_error_camera">無法開啟相機：%1$s</string>
+    <string name="ar_retry">重試</string>
+
+    <string name="tracking_searching">正在偵測環境，請緩慢移動手機…</string>
+    <string name="tracking_ok">追蹤正常</string>
+
+    <!-- Home -->
+    <string name="home_upload">上傳資料</string>
+    <string name="home_measure">測量</string>
+    <string name="back">返回</string>
+
+    <!-- Measure -->
+    <string name="measure_title">測量</string>
+    <string name="measure_session_button">本次紀錄（%1$d）</string>
+    <string name="step_base">將準星對準樹幹與地面的交界處</string>
+    <string name="step_top">向上對準樹頂</string>
+    <string name="step_left">對準胸高（離地約 1.3 公尺）的樹幹左緣</string>
+    <string name="step_right">對準胸高的樹幹右緣</string>
+    <string name="action_base">標記基部</string>
+    <string name="action_top">標記樹頂</string>
+    <string name="action_left">標記左緣</string>
+    <string name="action_right">標記右緣</string>
+    <string name="action_skip_diameter">跳過樹寬</string>
+    <string name="action_redo">重新量測</string>
+    <string name="hint_not_tracking">AR 尚未追蹤，請緩慢移動手機後再試。</string>
+    <string name="hint_no_ground">找不到地面，請先掃描樹附近的地面，再對準樹基部。</string>
+    <string name="hint_too_close">離樹太近，請後退一些。</string>
+    <string name="hint_bad_top">無法計算樹高，請確認準星在樹頂且高於基部。</string>
+    <string name="hint_bad_edges">無法計算樹寬，請重新標記左右緣。</string>
+    <string name="gps_none">未取得定位</string>
+    <string name="gps_status">GPS ±%1$.0f 公尺</string>
+    <string name="gps_poor">GPS 精度差，建議稍候再量</string>
+
+    <string name="form_title">量測結果</string>
+    <string name="form_height">樹高（公尺）</string>
+    <string name="form_diameter">樹寬／胸徑（公分）</string>
+    <string name="form_tree_id">樹苗編號（例如 A-1，可留空）</string>
+    <string name="form_species">樹種</string>
+    <string name="form_note">備註</string>
+    <string name="form_distance">與樹距離 %1$.1f 公尺</string>
+    <string name="form_warn_too_close">站得太近，樹高誤差可能較大</string>
+    <string name="form_warn_top">樹頂角度過低，可能標錯樹頂</string>
+    <string name="form_save_next">儲存，量下一棵</string>
+    <string name="err_tree_id">樹苗編號格式錯誤，須為 英數字1–6碼-正整數，例如 A-1</string>
+    <string name="err_number">請輸入正確的數字</string>
+    <string name="err_species_long">樹種最多 100 字</string>
+
+    <string name="session_title">本次測量</string>
+    <string name="session_empty">這次還沒有儲存任何樹。</string>
+    <string name="session_finish">測量完畢</string>
+    <string name="session_finish_hint">按下後，這些資料會移到「上傳資料」。</string>
+
+    <!-- Upload -->
+    <string name="upload_title">上傳資料</string>
+    <string name="upload_all">全部上傳</string>
+    <string name="upload_export_csv">匯出 CSV</string>
+    <string name="upload_empty">目前沒有資料。</string>
+    <string name="sample_label">測試資料</string>
+    <string name="no_tree_id">未編號</string>
+    <string name="status_synced">已上傳</string>
+    <string name="status_pending">未上傳</string>
+    <string name="row_summary">高 %1$s 公尺 · 寬 %2$s 公分</string>
+    <string name="value_missing">—</string>
+
+    <string name="detail_title">資料內容</string>
+    <string name="detail_upload">上傳</string>
+    <string name="detail_delete">刪除</string>
+    <string name="detail_sample_no_delete">測試資料不能刪除。</string>
+    <string name="detail_synced_at">已於 %1$s 上傳</string>
+    <string name="delete_confirm_title">確定刪除？</string>
+    <string name="delete_confirm_body">刪除後無法復原。</string>
+    <string name="delete_confirm_body_unsynced">這筆資料還沒上傳，刪除後無法復原。</string>
+    <string name="cancel">取消</string>
+
+    <string name="field_created_at">量測時間</string>
+    <string name="field_tree_id">樹苗編號</string>
+    <string name="field_species">樹種</string>
+    <string name="field_height">樹高</string>
+    <string name="field_diameter">樹寬（胸徑）</string>
+    <string name="field_distance">與樹距離</string>
+    <string name="field_location">樹的位置</string>
+    <string name="field_gps_accuracy">GPS 精度</string>
+    <string name="field_note">備註</string>
+
+    <string name="msg_uploaded">上傳成功</string>
+    <string name="msg_uploaded_n">已上傳 %1$d 筆</string>
+    <string name="msg_not_configured">尚未設定 Supabase anon key，無法上傳。</string>
+    <string name="msg_upload_failed">上傳失敗：%1$s</string>
+    <string name="msg_upload_failed_partial">已上傳 %1$d 筆，其餘失敗：%2$s</string>
+</resources>
