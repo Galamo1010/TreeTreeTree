@@ -9,6 +9,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.treamaster.R
 import com.example.treamaster.data.DeviceId
+import com.example.treamaster.data.Region
+import com.example.treamaster.data.RegionStore
 import com.example.treamaster.data.TreeDatabase
 import com.example.treamaster.data.TreeId
 import com.example.treamaster.data.TreeMeasurement
@@ -23,18 +25,22 @@ import com.example.treamaster.measure.Step
 import com.example.treamaster.sensors.CompassSensor
 import com.example.treamaster.sensors.trueHeadingDeg
 import com.example.treamaster.ui.ar.ArController
+import com.example.treamaster.ui.message
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
+import java.util.UUID
 
 /** Editable result shown after the last marking step. Text fields hold what the user typed. */
 data class ResultForm(
     val height: String,
     val diameter: String,
-    val treeId: String = "",
+    /** Region code from the website's list; the slot typed below completes the tree number. */
+    val regionCode: String? = null,
+    val slot: String = "",
     val species: String = "",
     val note: String = "",
     val distanceM: Double,
@@ -48,6 +54,10 @@ class MeasureViewModel(app: Application) : AndroidViewModel(app) {
     private val locationTracker = LocationTracker(app)
     private val compass = CompassSensor(app)
     private val session = MeasureSession()
+    private val regionStore = RegionStore.get(app)
+    val regions: StateFlow<List<Region>> = regionStore.regions
+    // Trees in one run are usually in the same region, so the next form starts with the last one.
+    private var lastRegionCode: String? = null
 
     var step by mutableStateOf(Step.MARK_BASE)
         private set
@@ -69,6 +79,14 @@ class MeasureViewModel(app: Application) : AndroidViewModel(app) {
     // Where the user stood and which way the camera faced when marking the base.
     private var observerFix: LocationFix? = null
     private var observerHeadingDeg: Double? = null
+
+    init {
+        refreshRegions()
+    }
+
+    fun refreshRegions() {
+        viewModelScope.launch { regionStore.refresh() }
+    }
 
     /** Collect while the screen is visible; cancelling stops GPS. */
     suspend fun trackLocation() = locationTracker.updates().collect { fix = it }
@@ -146,10 +164,13 @@ class MeasureViewModel(app: Application) : AndroidViewModel(app) {
 
     fun saveAndNext() {
         val f = form ?: return
-        val treeId = TreeId.normalize(f.treeId)
-        if (treeId != null && !TreeId.isValid(treeId)) {
-            form = f.copy(error = R.string.err_tree_id)
-            return
+        val treeId = when (val built = TreeId.build(regions.value.find { it.code == f.regionCode }, f.slot)) {
+            TreeId.Built.Blank -> null
+            is TreeId.Built.Ok -> built.id
+            is TreeId.Built.Invalid -> {
+                form = f.copy(error = built.problem.message())
+                return
+            }
         }
         val species = f.species.trim()
         if (species.length > 100) {
@@ -185,16 +206,17 @@ class MeasureViewModel(app: Application) : AndroidViewModel(app) {
             deviceId = deviceId,
             inSession = true,
         )
+        lastRegionCode = f.regionCode
         viewModelScope.launch {
             dao.insert(row)
             redo()
         }
     }
 
-    /** Moves this run's trees to the upload list. */
+    /** Turns this run's trees into one scan on the upload screen. */
     fun finishSession(onDone: () -> Unit) {
         viewModelScope.launch {
-            dao.finishSession()
+            dao.finishSession(UUID.randomUUID().toString())
             redo()
             onDone()
         }
@@ -207,6 +229,7 @@ class MeasureViewModel(app: Application) : AndroidViewModel(app) {
             form = ResultForm(
                 height = result.heightM?.let { format(it, 2) }.orEmpty(),
                 diameter = result.diameterCm?.let { format(it, 1) }.orEmpty(),
+                regionCode = lastRegionCode,
                 distanceM = result.distanceToTreeM,
                 warnings = result.warnings,
             )

@@ -36,7 +36,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.treamaster.R
+import com.example.treamaster.data.TreeId
 import com.example.treamaster.data.TreeMeasurement
+import com.example.treamaster.ui.TreeIdPicker
 import com.example.treamaster.ui.formatOrDash
 import com.example.treamaster.ui.formatTime
 import com.example.treamaster.ui.title
@@ -72,6 +74,7 @@ fun UploadDetailScreen(vm: UploadViewModel, id: Long, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Fields(m)
+            AssignTreeId(vm, m)
 
             m.syncedAtMs?.let {
                 Text(stringResource(R.string.detail_synced_at, formatTime(it)), color = MaterialTheme.colorScheme.primary)
@@ -83,11 +86,23 @@ fun UploadDetailScreen(vm: UploadViewModel, id: Long, onBack: () -> Unit) {
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier.weight(1f),
                 ) { Text(stringResource(R.string.detail_delete)) }
+                // The sample exists for trying the upload, so it can be sent again and again.
+                val canUpload = m.syncedAtMs == null || m.isSample
                 Button(
                     onClick = { vm.upload(m) },
-                    enabled = m.syncedAtMs == null && !vm.uploading,
+                    enabled = canUpload && !vm.uploading,
                     modifier = Modifier.weight(1f),
-                ) { Text(stringResource(if (m.syncedAtMs == null) R.string.detail_upload else R.string.status_synced)) }
+                ) {
+                    Text(
+                        stringResource(
+                            when {
+                                m.syncedAtMs == null -> R.string.detail_upload
+                                canUpload -> R.string.detail_upload_again
+                                else -> R.string.status_synced
+                            },
+                        ),
+                    )
+                }
             }
             if (m.isSample) {
                 Text(stringResource(R.string.detail_sample_no_delete), style = MaterialTheme.typography.bodySmall)
@@ -116,6 +131,36 @@ fun UploadDetailScreen(vm: UploadViewModel, id: Long, onBack: () -> Unit) {
                 },
             )
         }
+    }
+}
+
+/** Region + slot editor, so rows measured without a number (and the sample) can still go to the website. */
+@Composable
+private fun AssignTreeId(vm: UploadViewModel, m: TreeMeasurement) {
+    val regions by vm.regions.collectAsState()
+    val current = TreeId.split(m.treeId)
+    var regionCode by remember(m.treeId) { mutableStateOf(current?.first) }
+    var slot by remember(m.treeId) { mutableStateOf(current?.second.orEmpty()) }
+    var error by remember(m.treeId) { mutableStateOf<Int?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.detail_assign_title), style = MaterialTheme.typography.titleMedium)
+        TreeIdPicker(
+            regions = regions,
+            regionCode = regionCode,
+            slot = slot,
+            onRegionChange = { regionCode = it; error = null },
+            onSlotChange = { slot = it; error = null },
+            onRefreshRegions = vm::refreshRegions,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        error?.let { Text(stringResource(it), color = MaterialTheme.colorScheme.error) }
+        OutlinedButton(
+            onClick = { error = vm.assignTreeId(m, regionCode, slot) },
+            modifier = Modifier.fillMaxWidth(),
+        ) { Text(stringResource(R.string.detail_assign_save)) }
+        Text(stringResource(R.string.detail_assign_hint), style = MaterialTheme.typography.bodySmall)
+        HorizontalDivider()
     }
 }
 
