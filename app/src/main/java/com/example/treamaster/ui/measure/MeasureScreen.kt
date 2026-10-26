@@ -54,6 +54,7 @@ import com.example.treamaster.geometry.Warning
 import com.example.treamaster.location.AccuracyGrade
 import com.example.treamaster.measure.Step
 import com.example.treamaster.ui.ar.ArCameraView
+import com.example.treamaster.ui.TreeIdPicker
 import com.example.treamaster.ui.ar.ArController
 import com.example.treamaster.ui.summary
 import com.example.treamaster.ui.title
@@ -238,11 +239,15 @@ private fun ResultPanel(vm: MeasureViewModel, form: ResultForm) {
                     modifier = Modifier.weight(1f),
                 )
             }
-            OutlinedTextField(
-                value = form.treeId,
-                onValueChange = { v -> vm.updateForm { it.copy(treeId = v) } },
-                label = { Text(stringResource(R.string.form_tree_id)) },
-                singleLine = true,
+            val regions by vm.regions.collectAsState()
+            Text(stringResource(R.string.form_tree_id), style = MaterialTheme.typography.labelMedium)
+            TreeIdPicker(
+                regions = regions,
+                regionCode = form.regionCode,
+                slot = form.slot,
+                onRegionChange = { code -> vm.updateForm { it.copy(regionCode = code) } },
+                onSlotChange = { v -> vm.updateForm { it.copy(slot = v) } },
+                onRefreshRegions = vm::refreshRegions,
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(

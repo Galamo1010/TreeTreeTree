@@ -13,6 +13,7 @@ import com.example.treamaster.ui.home.HomeScreen
 import com.example.treamaster.ui.measure.MeasureScreen
 import com.example.treamaster.ui.permission.PermissionGate
 import com.example.treamaster.ui.theme.TreaMasterTheme
+import com.example.treamaster.ui.upload.BatchScreen
 import com.example.treamaster.ui.upload.UploadDetailScreen
 import com.example.treamaster.ui.upload.UploadListScreen
 import com.example.treamaster.ui.upload.UploadViewModel
@@ -21,7 +22,8 @@ private sealed interface Screen {
     data object Home : Screen
     data object Measure : Screen
     data object UploadList : Screen
-    data class UploadDetail(val id: Long) : Screen
+    data class UploadBatch(val batchId: String) : Screen
+    data class UploadDetail(val id: Long, val batchId: String) : Screen
 }
 
 class MainActivity : ComponentActivity() {
@@ -49,12 +51,18 @@ class MainActivity : ComponentActivity() {
                     Screen.UploadList -> UploadListScreen(
                         vm = uploadVm,
                         onBack = { screen = Screen.Home },
-                        onOpen = { screen = Screen.UploadDetail(it) },
+                        onOpen = { screen = Screen.UploadBatch(it) },
+                    )
+                    is Screen.UploadBatch -> BatchScreen(
+                        vm = uploadVm,
+                        batchId = s.batchId,
+                        onBack = { screen = Screen.UploadList },
+                        onOpen = { screen = Screen.UploadDetail(it, s.batchId) },
                     )
                     is Screen.UploadDetail -> UploadDetailScreen(
                         vm = uploadVm,
                         id = s.id,
-                        onBack = { screen = Screen.UploadList },
+                        onBack = { screen = Screen.UploadBatch(s.batchId) },
                     )
                 }
             }

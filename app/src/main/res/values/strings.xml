@@ -48,21 +48,27 @@
     <string name="form_title">量測結果</string>
     <string name="form_height">樹高（公尺）</string>
     <string name="form_diameter">樹寬／胸徑（公分）</string>
-    <string name="form_tree_id">樹苗編號（例如 A-1，可留空）</string>
+    <string name="form_tree_id">樹苗編號（區域＋樹位，可留空，之後在上傳頁補上）</string>
+    <string name="form_region">區域</string>
+    <string name="form_slot">樹位（1–%1$d）</string>
+    <string name="regions_unavailable">無法從網站取得區域清單</string>
+    <string name="regions_retry">重新取得</string>
+    <string name="err_no_region">請先選擇區域</string>
+    <string name="err_bad_slot">樹位必須是正整數</string>
+    <string name="err_slot_range">樹位超出這個區域的範圍</string>
     <string name="form_species">樹種</string>
     <string name="form_note">備註</string>
     <string name="form_distance">與樹距離 %1$.1f 公尺</string>
     <string name="form_warn_too_close">站得太近，樹高誤差可能較大</string>
     <string name="form_warn_top">樹頂角度過低，可能標錯樹頂</string>
     <string name="form_save_next">儲存，量下一棵</string>
-    <string name="err_tree_id">樹苗編號格式錯誤，須為 英數字1–6碼-正整數，例如 A-1</string>
     <string name="err_number">請輸入正確的數字</string>
     <string name="err_species_long">樹種最多 100 字</string>
 
     <string name="session_title">本次測量</string>
     <string name="session_empty">這次還沒有儲存任何樹。</string>
     <string name="session_finish">測量完畢</string>
-    <string name="session_finish_hint">按下後，這些資料會移到「上傳資料」。</string>
+    <string name="session_finish_hint">按下後，這些樹會成為「上傳資料」裡的一次掃描。</string>
 
     <!-- Upload -->
     <string name="upload_title">上傳資料</string>
@@ -70,6 +76,20 @@
     <string name="upload_export_csv">匯出 CSV</string>
     <string name="upload_empty">目前沒有資料。</string>
     <string name="sample_label">測試資料</string>
+    <string name="batch_title">%1$s 的掃描</string>
+    <string name="batch_sample_title">測試資料（僅 debug 版）</string>
+    <string name="batch_legacy_title">先前的資料</string>
+    <string name="batch_summary">%1$d 棵 · 已上傳 %2$d 棵</string>
+    <string name="batch_delete">刪除這次掃描</string>
+    <string name="batch_delete_confirm_title">刪除這次掃描的 %1$d 棵樹？</string>
+    <string name="batch_delete_confirm_unsynced">其中 %1$d 棵還沒上傳，刪除後無法復原。</string>
+    <string name="samples_title">共 %1$d 棵測試樹</string>
+    <string name="samples_unassigned">尚未指定區域，「全部上傳」不會送出</string>
+    <string name="samples_assigned">已指定 %1$s 區；「全部上傳」每次都會重新送出</string>
+    <string name="samples_choose_region">指定區域</string>
+    <string name="samples_apply">套用</string>
+    <string name="samples_overwrite_warning">測試資料會寫入該區樹位 1–20，網站上這些樹位原有的資料會被覆蓋。請只在測試環境使用。</string>
+    <string name="msg_samples_assigned">測試資料已指定為 %1$s-1 ～ %1$s-%2$d</string>
     <string name="no_tree_id">未編號</string>
     <string name="status_synced">已上傳</string>
     <string name="status_pending">未上傳</string>
@@ -78,6 +98,7 @@
 
     <string name="detail_title">資料內容</string>
     <string name="detail_upload">上傳</string>
+    <string name="detail_upload_again">再次上傳</string>
     <string name="detail_delete">刪除</string>
     <string name="detail_sample_no_delete">測試資料不能刪除。</string>
     <string name="detail_synced_at">已於 %1$s 上傳</string>
@@ -98,6 +119,12 @@
 
     <string name="msg_uploaded">上傳成功</string>
     <string name="msg_uploaded_n">已上傳 %1$d 筆</string>
+    <string name="msg_uploaded_n_skipped">已上傳 %1$d 筆，%2$d 筆未編號未上傳</string>
+    <string name="msg_no_tree_id">請先指定樹苗編號（區域＋樹位）再上傳</string>
+    <string name="msg_tree_id_saved">樹苗編號已更新</string>
+    <string name="detail_assign_title">指定樹苗編號</string>
+    <string name="detail_assign_save">儲存編號</string>
+    <string name="detail_assign_hint">上傳到網站時以樹苗編號為準，同編號會覆蓋網站上的舊資料。</string>
     <string name="msg_not_configured">尚未設定 Supabase anon key，無法上傳。</string>
     <string name="msg_upload_failed">上傳失敗：%1$s</string>
     <string name="msg_upload_failed_partial">已上傳 %1$d 筆，其餘失敗：%2$s</string>

@@ -15,10 +15,10 @@ fun formatOrDash(v: Double?, decimals: Int): String =
 
 fun formatTime(ms: Long): String = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date(ms))
 
-/** List title: the sample label, the seedling number, or "未編號". */
+/** List title: the sample label (with its number once given), the seedling number, or "未編號". */
 @Composable
 fun TreeMeasurement.title(): String = when {
-    isSample -> stringResource(R.string.sample_label)
+    isSample -> stringResource(R.string.sample_label) + (treeId?.let { " $it" } ?: "")
     treeId != null -> treeId
     else -> stringResource(R.string.no_tree_id)
 }
