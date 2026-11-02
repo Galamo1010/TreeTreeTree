@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Third-party APKs kept locally for reverse-engineering reference
+/REA/
+# Per-machine Android Studio device selection
+/.idea/deploymentTargetSelector.xml
