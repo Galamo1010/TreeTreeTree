@@ -7,6 +7,11 @@ import com.example.treamaster.geometry.Warning
 
 enum class Step { MARK_BASE, MARK_TOP, MARK_TRUNK_LEFT, MARK_TRUNK_RIGHT, DONE }
 
+enum class MarkKind { BASE, TOP, TRUNK_EDGE }
+
+/** A point the user has marked, in ARCore world space, for drawing a marker in the preview. */
+data class Mark(val kind: MarkKind, val position: Vec3)
+
 data class MeasureResult(
     val heightM: Double?,
     val diameterCm: Double?,
@@ -34,6 +39,20 @@ class MeasureSession(private val measureDiameter: Boolean = true) {
 
     val result: MeasureResult? get() = computed
 
+    /** Points marked so far. Top and edges sit on their ray at the base's horizontal distance. */
+    val marks: List<Mark>
+        get() {
+            val b = base ?: return emptyList()
+            fun onRay(kind: MarkKind, ray: Ray?) =
+                ray?.let { TreeGeometry.pointAtHorizontalDistance(it, b) }?.let { Mark(kind, it) }
+            return listOfNotNull(
+                Mark(MarkKind.BASE, b),
+                onRay(MarkKind.TOP, top),
+                onRay(MarkKind.TRUNK_EDGE, left),
+                onRay(MarkKind.TRUNK_EDGE, right),
+            )
+        }
+
     /** @param camera camera position at the moment of marking, @param basePoint ground hit at the trunk foot. */
     fun markBase(camera: Vec3, basePoint: Vec3): Boolean {
         if (step != Step.MARK_BASE) return false
@@ -46,7 +65,7 @@ class MeasureSession(private val measureDiameter: Boolean = true) {
 
     fun markTop(ray: Ray): Boolean {
         if (step != Step.MARK_TOP) return false
-        val h = TreeGeometry.treeHeight(camera!!, base!!, ray) ?: return false
+        val h = TreeGeometry.treeHeight(base!!, ray) ?: return false
         top = ray
         step = if (measureDiameter) Step.MARK_TRUNK_LEFT else Step.DONE
         if (step == Step.DONE) finish()
@@ -62,8 +81,7 @@ class MeasureSession(private val measureDiameter: Boolean = true) {
 
     fun markTrunkRight(ray: Ray): Boolean {
         if (step != Step.MARK_TRUNK_RIGHT) return false
-        val d = TreeGeometry.horizontalDistance(camera!!, base!!)
-        TreeGeometry.trunkDiameter(d, left!!, ray) ?: return false
+        TreeGeometry.trunkDiameter(base!!, left!!, ray) ?: return false
         right = ray
         step = Step.DONE
         finish()
@@ -87,9 +105,9 @@ class MeasureSession(private val measureDiameter: Boolean = true) {
     private fun finish() {
         val cam = camera!!
         val b = base!!
-        val h = top?.let { TreeGeometry.treeHeight(cam, b, it) }
+        val h = top?.let { TreeGeometry.treeHeight(b, it) }
         val d = TreeGeometry.horizontalDistance(cam, b)
-        val dia = if (left != null && right != null) TreeGeometry.trunkDiameter(d, left!!, right!!) else null
+        val dia = if (left != null && right != null) TreeGeometry.trunkDiameter(b, left!!, right!!) else null
         computed = MeasureResult(
             heightM = h?.heightM,
             diameterCm = dia?.times(100.0),

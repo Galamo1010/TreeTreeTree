@@ -20,6 +20,7 @@ import com.example.treamaster.location.LatLon
 import com.example.treamaster.location.LocationFix
 import com.example.treamaster.location.LocationTracker
 import com.example.treamaster.measure.ArFrameAdapter
+import com.example.treamaster.measure.Mark
 import com.example.treamaster.measure.MeasureSession
 import com.example.treamaster.measure.Step
 import com.example.treamaster.sensors.CompassSensor
@@ -69,6 +70,9 @@ class MeasureViewModel(app: Application) : AndroidViewModel(app) {
     var form by mutableStateOf<ResultForm?>(null)
         private set
     var fix by mutableStateOf<LocationFix?>(null)
+        private set
+    /** Points marked so far, drawn as markers in the AR preview. */
+    var marks by mutableStateOf<List<Mark>>(emptyList())
         private set
 
     /** Trees saved in the current run, not yet moved to the upload list. */
@@ -224,6 +228,7 @@ class MeasureViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun syncStep() {
         step = session.step
+        marks = session.marks
         val result = session.result
         if (step == Step.DONE && form == null && result != null) {
             form = ResultForm(

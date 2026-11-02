@@ -6,6 +6,7 @@ import com.example.treamaster.geometry.Vec3
 import com.example.treamaster.geometry.Warning
 import com.example.treamaster.location.GeoMath
 import com.example.treamaster.location.LatLon
+import com.example.treamaster.measure.MarkKind
 import com.example.treamaster.measure.MeasureSession
 import com.example.treamaster.measure.Step
 import com.example.treamaster.sensors.trueHeadingDeg
@@ -48,7 +49,7 @@ class TreeGeometryTest {
         // Base 10 m away on flat ground, true top 12 m above the ground, directly above the base.
         val base = Vec3(0.0, 0.0, -10.0)
         val top = Vec3(0.0, 12.0, -10.0)
-        val r = TreeGeometry.treeHeight(camera, base, rayTo(camera, top))!!
+        val r = TreeGeometry.treeHeight(base, rayTo(camera, top))!!
         assertEquals(12.0, r.heightM, 1e-6)
         assertEquals(10.0, r.horizontalDistanceM, 1e-9)
         assertTrue(r.warnings.isEmpty())
@@ -57,14 +58,14 @@ class TreeGeometryTest {
     @Test fun heightWarnsWhenTooClose() {
         val base = Vec3(0.0, 0.0, -3.0)
         val top = Vec3(0.0, 12.0, -3.0)
-        val r = TreeGeometry.treeHeight(camera, base, rayTo(camera, top))!!
+        val r = TreeGeometry.treeHeight(base, rayTo(camera, top))!!
         assertTrue(Warning.TOO_CLOSE in r.warnings)
     }
 
     @Test fun heightRejectsStraightUpAndBelowGround() {
         val base = Vec3(0.0, 0.0, -10.0)
-        assertNull(TreeGeometry.treeHeight(camera, base, Ray(camera, Vec3(0.0, 1.0, 0.0))))
-        assertNull(TreeGeometry.treeHeight(camera, base, rayTo(camera, Vec3(0.0, -1.0, -10.0))))
+        assertNull(TreeGeometry.treeHeight(base, Ray(camera, Vec3(0.0, 1.0, 0.0))))
+        assertNull(TreeGeometry.treeHeight(base, rayTo(camera, Vec3(0.0, -1.0, -10.0))))
     }
 
     @Test fun diameterFromTangentRays() {
@@ -73,7 +74,15 @@ class TreeGeometryTest {
         val half = asin(radius / axisDistance)
         val left = Ray(camera, Vec3(-sin(half), 0.0, -cos(half)))
         val right = Ray(camera, Vec3(sin(half), 0.0, -cos(half)))
-        val d = TreeGeometry.trunkDiameter(axisDistance - radius, left, right)!!
+        val d = TreeGeometry.trunkDiameter(Vec3(0.0, 0.0, -(axisDistance - radius)), left, right)!!
+        assertEquals(0.5, d, 1e-9)
+    }
+
+    @Test fun diameterAcceptsEdgesInEitherOrder() {
+        val half = asin(0.25 / 8.0)
+        val left = Ray(camera, Vec3(-sin(half), 0.0, -cos(half)))
+        val right = Ray(camera, Vec3(sin(half), 0.0, -cos(half)))
+        val d = TreeGeometry.trunkDiameter(Vec3(0.0, 0.0, -7.75), right, left)!!
         assertEquals(0.5, d, 1e-9)
     }
 
@@ -87,13 +96,47 @@ class TreeGeometryTest {
             return Ray(camera, Vec3(h.x * cos(t), sin(t), h.z * cos(t)).normalized()!!)
         }
         // Tilting both rays by the same elevation leaves their ground-plane projection untouched.
-        val d = TreeGeometry.trunkDiameter(7.75, tilted(-1.0), tilted(1.0))!!
+        val d = TreeGeometry.trunkDiameter(Vec3(0.0, 0.0, -7.75), tilted(-1.0), tilted(1.0))!!
         assertEquals(0.5, d, 1e-9)
     }
 
     @Test fun diameterRejectsIdenticalRays() {
         val r = Ray(camera, Vec3(0.0, 0.0, -1.0))
-        assertNull(TreeGeometry.trunkDiameter(5.0, r, r))
+        assertNull(TreeGeometry.trunkDiameter(Vec3(0.0, 0.0, -5.0), r, r))
+    }
+
+    @Test fun heightUsesTheTopRaysOwnPositionAfterSteppingBack() {
+        // Base marked from 10 m, then the user walks 6 m further back and 0.2 m up a slope.
+        val base = Vec3(0.0, 0.0, -10.0)
+        val top = Vec3(0.0, 12.0, -10.0)
+        val later = Vec3(0.0, 1.6, 6.0)
+        val r = TreeGeometry.treeHeight(base, rayTo(later, top))!!
+        assertEquals(12.0, r.heightM, 1e-6)
+        assertEquals(16.0, r.horizontalDistanceM, 1e-9)
+    }
+
+    @Test fun sessionMeasuresCorrectlyWhenUserMovesBetweenTaps() {
+        val s = MeasureSession(measureDiameter = true)
+        val base = Vec3(0.0, 0.0, -7.75) // trunk foot, near surface of a 0.5 m trunk centred at z = -8
+        assertTrue(s.markBase(camera, base))
+        val back = Vec3(0.0, 1.4, 5.0)
+        assertTrue(s.markTop(rayTo(back, Vec3(0.0, 12.0, -7.75))))
+        // Edges marked from a spot 1 m to the side: tangent rays to the trunk circle from there.
+        val side = Vec3(1.0, 1.4, 0.0)
+        val toAxis = Vec3(0.0 - side.x, 0.0, -8.0 - side.z)
+        val c = toAxis.horizontalLength()
+        val axisAngle = Math.atan2(toAxis.x, -toAxis.z)
+        val half = asin(0.25 / c)
+        fun edge(sign: Double): Ray {
+            val a = axisAngle + sign * half
+            return Ray(side, Vec3(sin(a), 0.0, -cos(a)))
+        }
+        assertTrue(s.markTrunkLeft(edge(-1.0)))
+        assertTrue(s.markTrunkRight(edge(1.0)))
+        val res = s.result!!
+        assertEquals(12.0, res.heightM!!, 1e-6)
+        // The base is the near surface seen from the first spot, so from the side it is ~1 cm off.
+        assertEquals(50.0, res.diameterCm!!, 2.0)
     }
 
     @Test fun sessionRunsHeightThenDiameter() {
@@ -109,6 +152,25 @@ class TreeGeometryTest {
         val res = s.result!!
         assertEquals(50.0, res.diameterCm!!, 1e-6)
         assertTrue(res.heightM!! in 11.0..12.5)
+    }
+
+    @Test fun marksSitAtTheBaseDistanceOnEachRay() {
+        val s = MeasureSession(measureDiameter = true)
+        assertTrue(s.marks.isEmpty())
+        val base = Vec3(0.0, 0.0, -10.0)
+        assertTrue(s.markBase(camera, base))
+        val back = Vec3(0.0, 1.4, 4.0)
+        assertTrue(s.markTop(rayTo(back, Vec3(0.0, 12.0, -10.0))))
+        assertTrue(s.markTrunkLeft(rayTo(camera, Vec3(-0.25, 1.3, -10.0))))
+        val marks = s.marks
+        assertEquals(listOf(MarkKind.BASE, MarkKind.TOP, MarkKind.TRUNK_EDGE), marks.map { it.kind })
+        assertEquals(base, marks[0].position)
+        val top = marks[1].position
+        assertEquals(12.0, top.y, 1e-6); assertEquals(-10.0, top.z, 1e-6)
+        val edge = marks[2].position
+        assertEquals(1.3, edge.y, 1e-3); assertEquals(-0.25, edge.x, 1e-3)
+        s.reset()
+        assertTrue(s.marks.isEmpty())
     }
 
     @Test fun sessionRejectsOutOfOrderAndTooCloseBase() {

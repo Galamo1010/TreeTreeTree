@@ -5,6 +5,8 @@ import android.hardware.display.DisplayManager
 import android.opengl.GLES20
 import android.opengl.GLSurfaceView
 import android.view.Display
+import com.example.treamaster.geometry.Vec3
+import com.example.treamaster.measure.Mark
 import com.google.ar.core.Frame
 import com.google.ar.core.Session
 import com.google.ar.core.TrackingState
@@ -23,8 +25,13 @@ class ArRenderer(
     private val onCameraError: (Throwable) -> Unit,
 ) : GLSurfaceView.Renderer {
     @Volatile var session: Session? = null
+    /** Points to draw markers at, in world space. Replace the whole list to update. */
+    @Volatile var marks: List<Mark> = emptyList()
 
     private val background = BackgroundRenderer()
+    private val markers = MarkerRenderer()
+    private val viewMatrix = FloatArray(16)
+    private val projMatrix = FloatArray(16)
     private var viewportChanged = false
     private var width = 0
     private var height = 0
@@ -39,6 +46,7 @@ class ArRenderer(
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
         GLES20.glClearColor(0f, 0f, 0f, 1f)
         background.createOnGlThread()
+        markers.createOnGlThread()
     }
 
     override fun onSurfaceChanged(gl: GL10?, w: Int, h: Int) {
@@ -69,6 +77,13 @@ class ArRenderer(
         while (true) pending.poll()?.invoke(frame, width, height) ?: break
 
         val tracking = frame.camera.trackingState == TrackingState.TRACKING
+        if (tracking) {
+            val camera = frame.camera
+            camera.getViewMatrix(viewMatrix, 0)
+            camera.getProjectionMatrix(projMatrix, 0, NEAR, FAR)
+            val p = camera.pose
+            markers.draw(marks, viewMatrix, projMatrix, Vec3(p.tx().toDouble(), p.ty().toDouble(), p.tz().toDouble()))
+        }
         if (tracking != lastTracking) {
             lastTracking = tracking
             onTrackingChanged(tracking)
@@ -83,4 +98,9 @@ class ArRenderer(
     private fun displayRotation(): Int =
         (context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager)
             .getDisplay(Display.DEFAULT_DISPLAY).rotation
+
+    private companion object {
+        const val NEAR = 0.05f
+        const val FAR = 100f
+    }
 }

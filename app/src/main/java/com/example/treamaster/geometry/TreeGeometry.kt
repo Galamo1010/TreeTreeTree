@@ -1,6 +1,5 @@
 package com.example.treamaster.geometry
 
-import kotlin.math.acos
 import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -74,10 +73,13 @@ object TreeGeometry {
      *
      * The base is a real 3D point (hit-test on the ground). The top has no surface to hit, so only its
      * ray is used: we extend it until its horizontal reach equals the horizontal distance to the base.
+     * Distance and camera height are taken from the ray's own origin, so the user may step back
+     * after marking the base to see the top.
      *
      * height = (cameraY + D * tan(elevation of top ray)) - baseY
      */
-    fun treeHeight(camera: Vec3, base: Vec3, topRay: Ray): HeightResult? {
+    fun treeHeight(base: Vec3, topRay: Ray): HeightResult? {
+        val camera = topRay.origin
         val d = hypot(base.x - camera.x, base.z - camera.z)
         if (d < MIN_DISTANCE_M) return null
         val horiz = topRay.direction.horizontalLength()
@@ -98,24 +100,53 @@ object TreeGeometry {
     /**
      * Trunk diameter by tangent projection.
      *
-     * Seen from distance c to the trunk's axis, the two silhouette edges subtend a full angle a with
-     * sin(a/2) = r / c. If d is the distance to the near surface, c = d + r, so
-     * r = d * s / (1 - s), s = sin(a/2). Angles are measured in the ground plane, so the tilt of the
-     * phone does not matter. [nearSurfaceDistance] is the horizontal distance camera -> trunk surface
-     * (the marked base point is a good approximation).
+     * Seen from distance c to the trunk's axis, a silhouette edge makes an angle a with the axis
+     * direction where sin(a) = r / c. If d is the distance to the near surface, c = d + r, so
+     * r = d * s / (1 - s), s = sin(a). Each edge is solved on its own against the direction from its
+     * ray's origin to [base] (the marked trunk foot, taken as the axis direction and as the near
+     * surface), and the two half-widths are added. So the edges may be marked from different spots,
+     * and a base marked a little off-centre mostly cancels out. Angles are measured in the ground
+     * plane, so the tilt of the phone does not matter. Left and right may be given in either order.
      *
      * @return diameter in metres, or null if the geometry is degenerate.
      */
-    fun trunkDiameter(nearSurfaceDistance: Double, leftEdge: Ray, rightEdge: Ray): Double? {
-        if (nearSurfaceDistance < MIN_DISTANCE_M) return null
-        val l = Vec3(leftEdge.direction.x, 0.0, leftEdge.direction.z).normalized() ?: return null
-        val r = Vec3(rightEdge.direction.x, 0.0, rightEdge.direction.z).normalized() ?: return null
-        val angle = acos(l.dot(r).coerceIn(-1.0, 1.0))
-        if (angle <= 1e-4) return null
-        val s = sin(angle / 2.0)
+    fun trunkDiameter(base: Vec3, leftEdge: Ray, rightEdge: Ray): Double? {
+        val a = edgeSide(base, leftEdge) ?: return null
+        val b = edgeSide(base, rightEdge) ?: return null
+        // The edge with the larger signed angle bounds one side of the axis, the other edge the other.
+        val (hi, lo) = if (a.angle >= b.angle) a to b else b to a
+        if (hi.angle - lo.angle <= 1e-4) return null
+        val r1 = halfWidth(hi.distance, hi.angle) ?: return null
+        val r2 = halfWidth(lo.distance, -lo.angle) ?: return null
+        return (r1 + r2).takeIf { it > 0 }
+    }
+
+    private class EdgeSide(val distance: Double, val angle: Double)
+
+    /** Horizontal distance origin -> base and the signed ground-plane angle from that direction to the ray. */
+    private fun edgeSide(base: Vec3, edge: Ray): EdgeSide? {
+        val d = horizontalDistance(edge.origin, base)
+        if (d < MIN_DISTANCE_M) return null
+        val axis = Vec3(base.x - edge.origin.x, 0.0, base.z - edge.origin.z).normalized() ?: return null
+        val e = Vec3(edge.direction.x, 0.0, edge.direction.z).normalized() ?: return null
+        val angle = atan2(axis.x * e.z - axis.z * e.x, axis.dot(e))
+        return EdgeSide(d, angle)
+    }
+
+    private fun halfWidth(nearSurfaceDistance: Double, angle: Double): Double? {
+        val s = sin(angle)
         if (s >= 0.999) return null
-        val radius = nearSurfaceDistance * s / (1.0 - s)
-        return 2.0 * radius
+        return nearSurfaceDistance * s / (1.0 - s)
+    }
+
+    /**
+     * Point on [ray] whose horizontal distance from the ray's origin equals that of [target]. This is
+     * where the tree top / trunk edge is assumed to be, so it is where to draw its marker.
+     */
+    fun pointAtHorizontalDistance(ray: Ray, target: Vec3): Vec3? {
+        val horiz = ray.direction.horizontalLength()
+        if (horiz < 1e-6) return null
+        return ray.origin + ray.direction * (horizontalDistance(ray.origin, target) / horiz)
     }
 
     /** Horizontal distance camera -> point. */

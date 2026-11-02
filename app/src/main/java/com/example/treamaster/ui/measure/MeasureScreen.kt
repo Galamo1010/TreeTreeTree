@@ -82,6 +82,7 @@ fun MeasureScreen(
     BackHandler(onBack = onBack)
     LaunchedEffect(locationGranted) { if (locationGranted) vm.trackLocation() }
     LaunchedEffect(Unit) { vm.trackCompass() }
+    LaunchedEffect(vm.marks) { ar.marks = vm.marks }
 
     Box(Modifier.fillMaxSize()) {
         ArCameraView(controller = ar, onTrackingChanged = { tracking = it })
